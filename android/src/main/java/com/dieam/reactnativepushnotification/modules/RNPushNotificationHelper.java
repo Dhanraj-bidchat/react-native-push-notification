@@ -159,12 +159,47 @@ public class RNPushNotificationHelper {
                 title = context.getPackageManager().getApplicationLabel(appInfo).toString();
             }
 
-            NotificationCompat.Builder notification = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
-                    .setContentTitle(title)
-                    .setTicker(bundle.getString("ticker"))
-                    .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
-                    .setPriority(NotificationCompat.PRIORITY_HIGH)
-                    .setAutoCancel(bundle.getBoolean("autoCancel", true));
+            //Notification channel should only be created for devices running Android 26
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+
+                NotificationChannel notificationChannel = new NotificationChannel("unique_channel_id","channel_name", 4);
+            
+                //Boolean value to set if lights are enabled for Notifications from this Channel
+                notificationChannel.enableLights(true);
+            
+                //Boolean value to set if vibration is enabled for Notifications from this Channel
+                notificationChannel.enableVibration(true);
+            
+                //Sets the color of Notification Light
+                notificationChannel.setLightColor(Color.GREEN);
+            
+                //Set the vibration pattern for notifications. Pattern is in milliseconds with the format {delay,play,sleep,play,sleep...}
+                notificationChannel.setVibrationPattern(new long[]{500,500,500,500,500});
+            
+                //Sets whether notifications from these Channel should be visible on Lockscreen or not
+                notificationChannel.setLockscreenVisibility( Notification.VISIBILITY_PUBLIC);
+    
+                // Creating the Channel
+                NotificationManager notificationManager = (NotificationManager)context.getSystemService(NotificationManager.class);
+                notificationManager.createNotificationChannel(notificationChannel);
+                
+                notification = new NotificationCompat.Builder(context, "unique_channel_id")
+                        .setContentTitle(title)
+                        .setTicker(bundle.getString("ticker"))
+                        .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+                        .setPriority(NotificationCompat.PRIORITY_HIGH)
+                        .setAutoCancel(bundle.getBoolean("autoCancel", true));
+    
+            } else {
+    
+                notification = new NotificationCompat.Builder(context)
+                        .setContentTitle(title)
+                        .setTicker(bundle.getString("ticker"))
+                        .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+                        .setPriority(NotificationCompat.PRIORITY_HIGH)
+                        .setAutoCancel(bundle.getBoolean("autoCancel", true));
+    
+            }
 
             String group = bundle.getString("group");
             if (group != null) {

@@ -4,7 +4,6 @@ package com.dieam.reactnativepushnotification.modules;
 import android.app.AlarmManager;
 import android.app.Application;
 import android.app.Notification;
-import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
@@ -20,6 +19,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.NotificationCompat;
+import android.app.NotificationChannel;
 import android.util.Log;
 
 import com.facebook.react.bridge.ReadableMap;
@@ -35,13 +35,13 @@ import static com.dieam.reactnativepushnotification.modules.RNPushNotificationAt
 public class RNPushNotificationHelper {
     public static final String PREFERENCES_KEY = "rn_push_notification";
     private static final long DEFAULT_VIBRATION = 300L;
-    private static final String NOTIFICATION_CHANNEL_ID = "rn-push-notification-channel-id";
 
     private Context context;
     private final SharedPreferences scheduledNotificationsPersistence;
     private static final int ONE_MINUTE = 60 * 1000;
     private static final long ONE_HOUR = 60 * ONE_MINUTE;
     private static final long ONE_DAY = 24 * ONE_HOUR;
+    NotificationCompat.Builder notification;
 
     public RNPushNotificationHelper(Application context) {
         this.context = context;
@@ -160,46 +160,46 @@ public class RNPushNotificationHelper {
             }
 
             //Notification channel should only be created for devices running Android 26
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
 
-                NotificationChannel notificationChannel = new NotificationChannel("unique_channel_id","channel_name", 4);
+            NotificationChannel notificationChannel = new NotificationChannel("unique_channel_id","channel_name", 4);
+        
+            //Boolean value to set if lights are enabled for Notifications from this Channel
+            notificationChannel.enableLights(true);
+        
+            //Boolean value to set if vibration is enabled for Notifications from this Channel
+            notificationChannel.enableVibration(true);
+        
+            //Sets the color of Notification Light
+            notificationChannel.setLightColor(Color.GREEN);
+        
+            //Set the vibration pattern for notifications. Pattern is in milliseconds with the format {delay,play,sleep,play,sleep...}
+            notificationChannel.setVibrationPattern(new long[]{500,500,500,500,500});
+        
+            //Sets whether notifications from these Channel should be visible on Lockscreen or not
+            notificationChannel.setLockscreenVisibility( Notification.VISIBILITY_PUBLIC);
+
+            // Creating the Channel
+            NotificationManager notificationManager = (NotificationManager)context.getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(notificationChannel);
             
-                //Boolean value to set if lights are enabled for Notifications from this Channel
-                notificationChannel.enableLights(true);
-            
-                //Boolean value to set if vibration is enabled for Notifications from this Channel
-                notificationChannel.enableVibration(true);
-            
-                //Sets the color of Notification Light
-                notificationChannel.setLightColor(Color.GREEN);
-            
-                //Set the vibration pattern for notifications. Pattern is in milliseconds with the format {delay,play,sleep,play,sleep...}
-                notificationChannel.setVibrationPattern(new long[]{500,500,500,500,500});
-            
-                //Sets whether notifications from these Channel should be visible on Lockscreen or not
-                notificationChannel.setLockscreenVisibility( Notification.VISIBILITY_PUBLIC);
-    
-                // Creating the Channel
-                NotificationManager notificationManager = (NotificationManager)context.getSystemService(NotificationManager.class);
-                notificationManager.createNotificationChannel(notificationChannel);
-                
-                notification = new NotificationCompat.Builder(context, "unique_channel_id")
-                        .setContentTitle(title)
-                        .setTicker(bundle.getString("ticker"))
-                        .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
-                        .setPriority(NotificationCompat.PRIORITY_HIGH)
-                        .setAutoCancel(bundle.getBoolean("autoCancel", true));
-    
-            } else {
-    
-                notification = new NotificationCompat.Builder(context)
-                        .setContentTitle(title)
-                        .setTicker(bundle.getString("ticker"))
-                        .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
-                        .setPriority(NotificationCompat.PRIORITY_HIGH)
-                        .setAutoCancel(bundle.getBoolean("autoCancel", true));
-    
-            }
+            notification = new NotificationCompat.Builder(context, "unique_channel_id")
+                    .setContentTitle(title)
+                    .setTicker(bundle.getString("ticker"))
+                    .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setAutoCancel(bundle.getBoolean("autoCancel", true));
+
+        } else {
+
+            notification = new NotificationCompat.Builder(context)
+                    .setContentTitle(title)
+                    .setTicker(bundle.getString("ticker"))
+                    .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setAutoCancel(bundle.getBoolean("autoCancel", true));
+
+        }
 
             String group = bundle.getString("group");
             if (group != null) {
@@ -309,7 +309,6 @@ public class RNPushNotificationHelper {
                     PendingIntent.FLAG_UPDATE_CURRENT);
 
             NotificationManager notificationManager = notificationManager();
-            checkOrCreateChannel(notificationManager);
 
             notification.setContentIntent(pendingIntent);
 
@@ -444,13 +443,6 @@ public class RNPushNotificationHelper {
         notificationManager.cancelAll();
     }
 
-    public void clearNotification(int notificationID) {
-        Log.i(LOG_TAG, "Clearing notification: " + notificationID);
-
-        NotificationManager notificationManager = notificationManager();
-        notificationManager.cancel(notificationID);
-    }
-
     public void cancelAllScheduledNotifications() {
         Log.i(LOG_TAG, "Cancelling all notifications");
 
@@ -508,24 +500,5 @@ public class RNPushNotificationHelper {
         } else {
             editor.apply();
         }
-    }
-
-    private static boolean channelCreated = false;
-    private static void checkOrCreateChannel(NotificationManager manager) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O)
-            return;
-        if (channelCreated)
-            return;
-        if (manager == null)
-            return;
-
-        final CharSequence name = "rn-push-notification-channel";
-        int importance = NotificationManager.IMPORTANCE_DEFAULT;
-        NotificationChannel channel = new NotificationChannel(NOTIFICATION_CHANNEL_ID, name, importance);
-        channel.enableLights(true);
-        channel.enableVibration(true);
-
-        manager.createNotificationChannel(channel);
-        channelCreated = true;
     }
 }

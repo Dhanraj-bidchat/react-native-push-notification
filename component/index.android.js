@@ -34,10 +34,6 @@ NotificationsComponent.prototype.cancelLocalNotifications = function(details: Ob
 	RNPushNotification.cancelLocalNotifications(details);
 };
 
-NotificationsComponent.prototype.clearLocalNotification = function(details: Object) {
-	RNPushNotification.clearLocalNotification(details);
-};
-
 NotificationsComponent.prototype.cancelAllLocalNotifications = function() {
 	RNPushNotification.cancelAllLocalNotifications();
 };
@@ -62,7 +58,7 @@ NotificationsComponent.prototype.abandonPermissions = function() {
 };
 
 NotificationsComponent.prototype.checkPermissions = function(callback: Function) {
-	RNPushNotification.checkPermissions().then(alert => callback({ alert }));
+	/* Void */
 };
 
 NotificationsComponent.prototype.addEventListener = function(type: string, handler: Function) {
